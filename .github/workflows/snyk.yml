@@ -1,0 +1,60 @@
+name: Snyk scan
+
+on:
+  workflow_dispatch:  # Manual trigger for the workflow
+
+permissions:
+  id-token: write
+  contents: read    
+  issues: write
+  security-events: write
+  actions: read  
+
+jobs:
+  # Job for running Snyk to check dependencies for vulnerabilities
+  snyk_scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2  # Using a stable version
+
+      - name: Run Snyk to check for vulnerabilities in dependencies
+        uses: snyk/actions/node@master
+        continue-on-error: true
+        with: 
+          command: test
+          args: --project-name="trustfactors/origination-admin-portal" --sarif-file-output=snyk_dependency_scan.sarif --severity-threshold=low
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      - name: Upload Dependency Scan Results to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: snyk_dependency_scan.sarif
+
+  # Job for running Snyk to check source code for vulnerabilities
+  code_scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2  # Using a stable version
+
+      - name: Run Snyk to check for vulnerabilities in code
+        uses: snyk/actions/node@master
+        continue-on-error: true
+        with: 
+          command: code test
+          args: --project-name="trustfactors/origination-admin-portal" --sarif-file-output=snyk_code_scan.sarif  
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      - name: Upload Code Scan Results to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: snyk_code_scan.sarif
+
+      - name: Archive Snyk Code Coverage Results
+        uses: actions/upload-artifact@v2 
+        with:
+          name: snyk-code-coverage
+          path: snyk_code_scan.sarif
