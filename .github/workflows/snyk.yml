@@ -1,60 +1,41 @@
-name: Snyk scan
+name: Generate SBOM with Snyk
 
 on:
-  workflow_dispatch:  # Manual trigger for the workflow
-
-permissions:
-  id-token: write
-  contents: read    
-  issues: write
-  security-events: write
-  actions: read  
+  push:
+    branches:
+      - main
+  pull_request:
 
 jobs:
-  # Job for running Snyk to check dependencies for vulnerabilities
-  snyk_scan:
+  generate-sbom:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2  # Using a stable version
+    # Step 1: Checkout the code
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
-      - name: Run Snyk to check for vulnerabilities in dependencies
-        uses: snyk/actions/node@master
-        continue-on-error: true
-        with: 
-          command: test
-          args: --project-name="trustfactors/origination-admin-portal" --sarif-file-output=snyk_dependency_scan.sarif --severity-threshold=low
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+    # Step 2: Set up Node.js (only necessary if you're scanning a Node.js project)
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18.x'  # Adjust the version as needed
 
-      - name: Upload Dependency Scan Results to GitHub Code Scanning
-        uses: github/codeql-action/upload-sarif@v2
-        with:
-          sarif_file: snyk_dependency_scan.sarif
+    # Step 3: Install snyk-cli
+    - name: Install Snyk CLI
+      run: npm install -g snyk
 
-  # Job for running Snyk to check source code for vulnerabilities
-  code_scan:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2  # Using a stable version
+    # Step 4: Authenticate Snyk (you can use Snyk token from GitHub Secrets)
+    - name: Authenticate Snyk
+      run: snyk auth ${{ secrets.SNYK_TOKEN }}
 
-      - name: Run Snyk to check for vulnerabilities in code
-        uses: snyk/actions/node@master
-        continue-on-error: true
-        with: 
-          command: code test
-          args: --project-name="trustfactors/origination-admin-portal" --sarif-file-output=snyk_code_scan.sarif  
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+    # Step 5: Generate SBOM in CycloneDX format
+    - name: Generate SBOM
+      run: snyk sbom --format=cyclonedx1.4+json > snyk-sbom.json
 
-      - name: Upload Code Scan Results to GitHub Code Scanning
-        uses: github/codeql-action/upload-sarif@v2
-        with:
-          sarif_file: snyk_code_scan.sarif
-
-      - name: Archive Snyk Code Coverage Results
-        uses: actions/upload-artifact@v2 
-        with:
-          name: snyk-code-coverage
-          path: snyk_code_scan.sarif
+    # Step 6: Upload SBOM as an artifact (optional, useful for later download)
+    - name: Upload SBOM as an artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: snyk-sbom
+        path: snyk-sbom.json
