@@ -1,6 +1,6 @@
-## Java Goof [![Known Vulnerabilities](https://snyk.io/test/github/octocat/hello-world/badge.svg)](https://snyk.io/test/github/octocat/hello-world)
+## Java Goof  [![Known Vulnerabilities](https://snyk.io/test/github/octocat/hello-world/badge.svg)](https://snyk.io/test/github/octocat/hello-world)
 
-For detailed vulnerability analysis, visit [Snyk project page](https://snyk.io/test/github/octocat/hello-world).
+## For detailed vulnerability analysis, visit [Snyk Java Goof Project Page](https://snyk.io/test/github/octocat/hello-world).
 
 
 A vulnerable demo application, initially based on [Ben Hassine](https://github.com/benas/)'s [TodoMVC](https://github.com/benas/todolist-mvc). 
